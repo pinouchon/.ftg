@@ -1,7 +1,5 @@
 # F*** toggle
 
-require 'pry'
-
 class FtgStats
   IDLE_THRESHOLD = 5 * 60
 
