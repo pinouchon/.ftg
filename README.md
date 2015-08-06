@@ -14,7 +14,6 @@ $> ftg
   develop: 00:13:30 (and 00:00:00 idle)
   meetings/standup: 00:05:00 (and 00:07:50 idle)
 2015-08-06:
-  no_branch: 00:02:40 (and 00:00:00 idle)
   feature/jira-1402-responsive-header: 01:12:20 (and 00:13:20 idle)
   feature/jira-1402-assets-upload-task: 02:32:20 (and 00:20:20 idle)
   feature/jira-1056-remove-newrelic-warnings: 00:43:10 (and 00:00:00 idle)
