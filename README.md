@@ -32,7 +32,7 @@ kill $(ps -x | grep '[i]dle_logger.rb' | awk '{print $1}')
 ruby $HOME/.ftg/idle_logger.rb &
 alias ftg="ruby ~/.ftg/ftg_stats.rb"
 ````
-- `cd ~``
+- `cd ~`
 - `git clone git@github.com:pinouchon/.ftg.git`
 - Restart your shell
 - ???
