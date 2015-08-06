@@ -18,7 +18,7 @@ $> ftg
   feature/jira-1402-assets-upload-task: 02:32:20 (and 00:20:20 idle)
   feature/jira-1056-remove-newrelic-warnings: 00:43:10 (and 00:00:00 idle)
   master: 00:01:30 (and 00:00:00 idle)
-  develop: 00:01:30 (and 00:00:00 idle)
+  develop: 00:03:20 (and 00:00:00 idle)
   meetings: 00:40:00 (and 00:12:50 idle)
   meetings/standup: 00:05:00 (and 00:12:50 idle)
 ````
