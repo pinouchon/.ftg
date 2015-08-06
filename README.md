@@ -1,6 +1,6 @@
 # .ftg
 
-## f*** toggl
+## ferme toggl
 Utility that you can use so you can close toggl.
 
 ## Example usage
