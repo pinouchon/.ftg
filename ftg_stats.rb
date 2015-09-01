@@ -14,14 +14,15 @@ class FtgStats
   end
 
   def format_time(seconds)
-    Time.at(seconds.round).utc.strftime('%H:%M:%S')
+    Time.at(seconds.round).utc.strftime('%H:%M:%S')#%Y %M %D
   end
 
   def search_idle_key(timestamp)
-    (0..9).each do |k|
+    (0..10).each do |k|
       key = timestamp + k
       return key if @idle_parts[key]
     end
+    # puts("not found #{format_time(timestamp)}")
     nil
   end
 
@@ -59,12 +60,15 @@ class FtgStats
     # tagging thresholds in idle_parts
     last_branch = 'unknown'
     @idle_parts.each do |timestamp, part|
-      if part[:branch]
+      if part[:branch] && part[:branch] != '' && part[:branch] != 'no_branch'
         last_branch = part[:branch]
       end
+      # puts "setting to #{last_branch} (#{Time.at(timestamp).strftime('%Y/%m/%d at %I:%M%p')})"
       @idle_parts[timestamp][:branch] = last_branch
       @idle_parts[timestamp][:idle] = part[:time_elapsed].to_i > IDLE_THRESHOLD
     end
+    # require 'pry'
+    # binding.pry
   end
 
   def group
@@ -86,7 +90,8 @@ class FtgStats
       puts "#{day}:"
       Hash[by_day].each do |branch, by_branch|
         by_idle = Hash[by_branch]
-        puts "  #{branch}: #{by_idle[false] || '00:00:00'} (and #{by_idle[true] || '00:00:00'} idle)"
+        idle_str = by_idle[true] ? "(and #{by_idle[true]} idle)" : ''
+        puts "  #{branch}: #{by_idle[false] || '00:00:00'} #{idle_str}"
       end
     end
   end
