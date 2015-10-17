@@ -1,6 +1,3 @@
-# F*** toggle
-require './ftg_sync'
-
 class FtgStats
   IDLE_THRESHOLD = 5 * 60
 
@@ -34,7 +31,7 @@ class FtgStats
     @commands = {}
     @idle_parts = {}
 
-    File.foreach("#{ftg_dir}/commands.log").each do |line|
+    File.foreach("#{ftg_dir}/log/commands.log").each do |line|
       # pinouchon       fg      no_alias        /Users/pinouchon/.ftg   no_branch       1438867098
       parts = line.split("\t")
       next if !parts[5] || parts[5].empty?
@@ -43,7 +40,7 @@ class FtgStats
                                          :alias => parts[2], :dir => parts[3], :branch => parts[4] }
     end
 
-    File.foreach("#{ftg_dir}/idle.log").each do |line|
+    File.foreach("#{ftg_dir}/log/idle.log").each do |line|
       parts = line.split("\t")
       next if !parts[1] || parts[1].empty?
       @idle_parts[parts[1].strip.to_i] = { :time_elapsed => parts[0] }
@@ -131,5 +128,3 @@ class FtgStats
   end
 
 end
-
-FtgStats.new.run

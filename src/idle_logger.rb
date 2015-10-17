@@ -4,6 +4,6 @@ loop do
   idle_result = `#{idle_cmd}`
   date_result = `date +%s`
   
-  `echo "#{idle_result.strip + '\t' + date_result.strip}" >> $HOME/.ftg/idle.log`
+  `echo "#{idle_result.strip + '\t' + date_result.strip}" >> $HOME/.ftg/log/idle.log`
   sleep 10
 end

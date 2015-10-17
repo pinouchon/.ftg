@@ -3,8 +3,8 @@
     "TOGGL_API_TOKEN": null,
     "TOGGL_WORKSPACE_ID": null,
     "TOGGL_PIDS": null,
-    "JIRA_USERNAME": "benjamin.crouzier",
-    "JIRA_PASSWORD": "morebabyplease",
+    "JIRA_USERNAME": null,
+    "JIRA_PASSWORD": null,
     "recap_mailto": ["romain.champourlier@jobteaser.com", "paul-armand.assus@jobteaser.com"],
     "projects": ["sprint", "maintenance", "project", "meeting", "recruitment", "support", "technical", "other"],
     "default_tasks": {
