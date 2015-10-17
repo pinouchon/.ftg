@@ -1,4 +1,5 @@
 # F*** toggle
+require './ftg_sync'
 
 class FtgStats
   IDLE_THRESHOLD = 5 * 60
@@ -11,6 +12,7 @@ class FtgStats
     crunch
     group
     display
+    # sync_toggl
   end
 
   def format_time(seconds)
@@ -94,6 +96,38 @@ class FtgStats
         puts "  #{branch}: #{by_idle[false] || '00:00:00'} #{idle_str}"
       end
     end
+  end
+
+  def sync_toggl
+    require 'pry'
+    sync = FtgSync.new
+    i = 0
+
+    Hash[@stats].each do |day, by_day|
+      puts "#{day}:"
+      Hash[by_day].each do |branch, by_branch|
+        by_idle = Hash[by_branch]
+        idle_str = by_idle[true] ? "(and #{by_idle[true]} idle)" : ''
+        puts "  #{branch}: #{by_idle[false] || '00:00:00'} #{idle_str}"
+
+        if branch =~ /jt-/ && by_idle[false]
+          ps = day.split('-')
+          time = Time.new(ps[0], ps[1], ps[2], 12,0,0)
+          begining_of_day = Time.new(ps[0], ps[1], ps[2], 0,0,0)
+          end_of_day = begining_of_day + (24*3600)
+
+          jt = branch[/(jt-[0-9]+)/]
+          duration_parts = by_idle[false].split(':')
+          duration = duration_parts[0].to_i * 3600 + duration_parts[1].to_i * 60 + duration_parts[2].to_i
+          type = sync.maintenance?(jt) ? :maintenance : :sprint
+          sync.create_entry("#{branch} [via FTG]", duration, time, type)
+          i += 1
+
+          puts "logging #{branch}: #{by_idle[false]}"
+        end
+      end
+    end
+    puts "total: #{i}"
   end
 
 end
