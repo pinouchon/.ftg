@@ -2,7 +2,7 @@ require 'uri'
 require 'httparty'
 
 class FtgSync
-  TOGGL_API_TOKEN = '317c14d9c290d3c6cc1e4f35a2ad8c79'
+  TOGGL_API_TOKEN = '317c14d9c290d3c6cc1e4f35a2ad8c80'
   TIME_ENTRIES_URL = 'https://toggl.com/api/v8/time_entries'
   WORKSPACE_ID = 939576
 

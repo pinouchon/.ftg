@@ -105,21 +105,22 @@ HELP
       Time.at(Time.now.to_i - time.to_i * 86400).strftime('%F') :
       Time.parse(time).strftime('%F')
 
-    # by_day[day].each do ||
     tasks = []
     Hash[ftg_stats.stats][day].each do |branch, by_branch|
       next if branch == 'unknown'
       by_idle = Hash[by_branch]
       task = Task.where(day: day).where(name: branch).first_or_create
-      task.duration = by_idle[false].to_i
+      task.duration = task.edited_at ? task.duration : by_idle[false].to_i
       task.save
       tasks << task
     end
 
     Interactive.new.interactive_edit(tasks)
     tasks.each do |task|
-      task.edited_at = Time.now
-      task.save
+      if task.changed.include?('duration')
+        task.edited_at = Time.now
+        task.save
+      end
     end
   end
 
