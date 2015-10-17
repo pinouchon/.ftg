@@ -32,7 +32,7 @@ $> ftg
 ## How to install
 - Add the following at the end of your .zshrc:
 ````shell
-###### FTG
+####################################################### FTG
  precmd () {
     command="$(fc -n -e - -l -1)"
     c_alias="`alias $command`"
@@ -41,10 +41,18 @@ $> ftg
     branch="$(current_branch)"
     branch=${branch:-no_branch}
     echo "$USER\t$command\t$c_alias\t`pwd`\t$branch\t`date +%s`" >> "$log_file"
+
+    case "$(ps | grep '[i]dle_logger' | wc -l | awk {'print $1'})" in
+      '0')  ruby $HOME/.ftg/idle_logger.rb &
+    ;;
+      '1')  # all good
+    ;;
+      *)  echo "Problem with restarting idle_logger. See ~/.zshrc"
+    ;;
+esac
 }
-kill $(ps -x | grep '[i]dle_logger.rb' | awk '{print $1}')
-ruby $HOME/.ftg/idle_logger.rb &
 alias ftg="ruby ~/.ftg/ftg_stats.rb"
+####################################################### END FTG
 ````
 - `cd ~`
 - `git clone git@github.com:pinouchon/.ftg.git`
