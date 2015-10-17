@@ -1,19 +1,18 @@
 class FtgStats
   IDLE_THRESHOLD = 5 * 60
 
-  def initialize
+  attr_accessor :stats
+
+  def initialize(only_last_day)
+    load_data(only_last_day)
+    crunch
+    group
   end
 
   def run
-    load_data
-    crunch
-    group
+
     display
     # sync_toggl
-  end
-
-  def format_time(seconds)
-    Time.at(seconds.round).utc.strftime('%H:%M:%S')#%Y %M %D
   end
 
   def search_idle_key(timestamp)
@@ -21,18 +20,24 @@ class FtgStats
       key = timestamp + k
       return key if @idle_parts[key]
     end
-    # puts("not found #{format_time(timestamp)}")
+    # puts("not found #{Utils.format_time(timestamp)}")
     nil
   end
 
-  def load_data
+  def load_data(only_last_day)
     home = `echo $HOME`.strip
     ftg_dir = "#{home}/.ftg"
+    commands_log_path = "#{ftg_dir}/log/commands.log"
+    idle_log_path = "#{ftg_dir}/log/idle.log"
+    records_to_load = only_last_day ? 24 * 360 : 0
     @commands = {}
     @idle_parts = {}
 
-    File.foreach("#{ftg_dir}/log/commands.log").each do |line|
-      # pinouchon       fg      no_alias        /Users/pinouchon/.ftg   no_branch       1438867098
+    # sample row:
+    # pinouchon       fg      no_alias        /Users/pinouchon/.ftg   no_branch       1438867098
+    (only_last_day ?
+      `tail -n #{records_to_load} #{commands_log_path}`.split("\n") :
+      File.foreach(commands_log_path)).each do |line|
       parts = line.split("\t")
       next if !parts[5] || parts[5].empty?
       @commands[parts[5].strip.to_i] = { :user => parts[0],
@@ -40,7 +45,9 @@ class FtgStats
                                          :alias => parts[2], :dir => parts[3], :branch => parts[4] }
     end
 
-    File.foreach("#{ftg_dir}/log/idle.log").each do |line|
+    (only_last_day ?
+      `tail -n #{records_to_load} #{idle_log_path}`.split("\n") :
+      File.foreach(idle_log_path)).each do |line|
       parts = line.split("\t")
       next if !parts[1] || parts[1].empty?
       @idle_parts[parts[1].strip.to_i] = { :time_elapsed => parts[0] }
@@ -66,8 +73,6 @@ class FtgStats
       @idle_parts[timestamp][:branch] = last_branch
       @idle_parts[timestamp][:idle] = part[:time_elapsed].to_i > IDLE_THRESHOLD
     end
-    # require 'pry'
-    # binding.pry
   end
 
   def group
@@ -77,7 +82,7 @@ class FtgStats
         parts_by_day.group_by { |_, v| v[:branch] }.map do |branch, parts_by_branch|
           [
             branch,
-            parts_by_branch.group_by { |_, v| v[:idle] }.map { |k, v| [k, format_time(v.count*10)] }
+            parts_by_branch.group_by { |_, v| v[:idle] }.map { |k, v| [k, v.count*10] }
           ]
         end
       ]
@@ -89,8 +94,8 @@ class FtgStats
       puts "#{day}:"
       Hash[by_day].each do |branch, by_branch|
         by_idle = Hash[by_branch]
-        idle_str = by_idle[true] ? "(and #{by_idle[true]} idle)" : ''
-        puts "  #{branch}: #{by_idle[false] || '00:00:00'} #{idle_str}"
+        idle_str = by_idle[true] ? "(and #{Utils.format_time(by_idle[true])} idle)" : ''
+        puts "  #{branch}: #{Utils.format_time(by_idle[false]) || '00:00:00'} #{idle_str}"
       end
     end
   end

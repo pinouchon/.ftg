@@ -7,6 +7,7 @@ class Interactive
   KEY_ENTER = "\r"
   KEY_CTRL_C = "\x03"
   KEY_TAB = "\t"
+  KEY_ESCAPE = "\e"
 
   SEQ_ERASE_LEFT = "\e[D"
   SEQ_ERASE_TO_END_OF_LINE = "\033[K"
@@ -54,12 +55,8 @@ class Interactive
     return c
   end
 
-  def format_time(secs)
-    '%02sh %02dm' % [secs / 60, secs % 60]
-  end
-
   def task_len
-    [@tasks.map { |e| e[:name].length }.max, 60].min
+    [@tasks.map { |e| e.name.length }.max, 60].min
   end
 
   def print_tasks
@@ -67,15 +64,15 @@ class Interactive
 
     puts @header
     @tasks.each_with_index do |task, i|
-      time_len = [task[:time] / 5, BAR_SIZE].min
+      time_len = [task.duration / 300, BAR_SIZE].min
       if time_len >= BAR_SIZE
         time_bar = "[#{('=' * (time_len - 2)) + '...'}"
       else
         time_bar = "[#{('=' * time_len).ljust(BAR_SIZE, ' ')}]"
       end
-      task_formatted = task[:name][0, task_len].ljust(task_len, ' ')
-      sync_status = task[:sync] ? '✔' : '✘'
-      line = "  #{task_formatted} #{format_time(task[:time])}  #{time_bar}"
+      task_formatted = task.name[0, task_len].ljust(task_len, ' ')
+      sync_status = !!task.synced_at ? '✔' : '✘'
+      line = "  #{task_formatted} #{Utils.format_time(task.duration)}  #{time_bar}"
 
       print "\e[47m" + "\e[30m" if i == @task_selected
       print line #[0..@term_width - 1]
@@ -84,7 +81,7 @@ class Interactive
       print "\033[K"
       puts ''
     end
-    total_time = format_time(@tasks.map { |t| t[:time] }.reduce(:+))
+    total_time = Utils.format_time(@tasks.map(&:duration).reduce(:+))
     puts "\e[100m  #{''.ljust(task_len, ' ')} #{total_time}  #{''.rjust(BAR_SIZE, ' ')}  \e[0m\033[K"
 
     puts "\033[K"
@@ -92,18 +89,9 @@ class Interactive
   end
 
 
-  def interactive_select
-
+  def interactive_edit(tasks)
+    @tasks = tasks
     @header = '2015-06-03  ' + '[↑|↓] navigate, [⇽|⇾] adjust time, [⇐ ] remove, [↵ ] save'.grey
-    @tasks = [
-      { name: 'sprint/JT-1234-some-desc', time: 78, sync: true },
-      { name: 'meetings/standup', time: 10, sync: false },
-      { name: 'sprint/JT-1243-other-long-description', time: 23, sync: false },
-      { name: 'sprint/JT-1222-desc', time: 220, sync: false },
-      { name: 'sprint/JT-2423-desc', time: 23, sync: false },
-      { name: 'sprint/JT-1923-hello', time: 110, sync: true },
-      { name: 'sprint/JT-1973-some-desc-toto', time: 5, sync: false },
-    ]
 
     @task_selected = 0
 
@@ -112,17 +100,19 @@ class Interactive
       input = read_char
 
       # puts input
-      exit if [KEY_CTRL_C, KEY_ENTER, 'q'].include? input
+      exit if [KEY_CTRL_C, KEY_ESCAPE].include? input
+      return if [KEY_ENTER, 'q'].include? input
+
       top_down = { KEY_DOWN => +1, KEY_TOP => -1 }
       if top_down.keys.include? input
         @task_selected += top_down[input]
         @task_selected %= @tasks.length
       end
-      left_right = { KEY_RIGHT => +5, KEY_LEFT => -5 }
+      left_right = { KEY_RIGHT => +300, KEY_LEFT => -300 }
       if left_right.keys.include? input
-        time = @tasks[@task_selected][:time]
-        time = [time - (time % 5) + left_right[input], 0].max
-        @tasks[@task_selected][:time] = time
+        time = @tasks[@task_selected].duration
+        time = [time - (time % 300) + left_right[input], 0].max
+        @tasks[@task_selected].duration = time
       end
       if input == KEY_BACKSPACE
         next if @tasks.length <= 1

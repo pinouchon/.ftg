@@ -1,6 +1,5 @@
 require 'uri'
 require 'httparty'
-require 'pry'
 
 class FtgSync
   TOGGL_API_TOKEN = '317c14d9c290d3c6cc1e4f35a2ad8c79'
