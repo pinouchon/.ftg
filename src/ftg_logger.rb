@@ -1,7 +1,8 @@
 class FtgLogger
 
-  def initialize(log_file)
-    @log_file = log_file
+  def initialize(ftg_dir)
+    @ftg_dir = ftg_dir
+    @log_file = "#{ftg_dir}/log/ftg.log"
   end
 
   def add_log(command, task)
@@ -30,7 +31,7 @@ class FtgLogger
   end
 
   def get_logs
-    File.open(@log_file, 'r') do |file|
+    File.open(@log_file, File::RDONLY|File::CREAT) do |file|
       file.read.split("\n").map do |e|
         parts = e.split("\t")
         { command: parts[0], task_name: parts[1], timestamp: parts[2] }
@@ -55,5 +56,12 @@ class FtgLogger
       end
     end
     unclosed_logs
+  end
+
+  def update_current
+    current = ''
+    current_logs = get_unclosed_logs
+    current = current_logs[0][:task_name] unless current_logs.empty?
+    `echo "#{current}" > #{@ftg_dir}/current.txt`
   end
 end

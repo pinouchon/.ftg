@@ -2,3 +2,4 @@
 log/*
 db/*
 config/private.json
+current.txt

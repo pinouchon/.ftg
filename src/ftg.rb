@@ -9,13 +9,13 @@ class Ftg
   include FtgOptions
 
   def initialize
-
     @commands = {
       help: { fn: -> { help }, aliases: [] },
       gtfo: { fn: -> {
         gtfo(day_option, get_option(['--restore']), get_option(['--reset'])) # option union
       }, aliases: [:recap, :leave, :wrap_up] },
-      status: { fn: -> { status }, aliases: [:current, :stack] },
+      status: { fn: -> { status }, aliases: [:stack] },
+      current: { fn: -> { current }, aliases: [] },
       git_stats: { fn: -> { git_stats }, aliases: [] },
       start: { fn: -> { start(ARGV[1]) }, aliases: [] },
       stop: { fn: -> { stop(get_option(['--all'])) }, aliases: [:end, :pop] },
@@ -24,7 +24,7 @@ class Ftg
       edit: { fn: -> {
         edit(day_option, get_option(['--restore']), get_option(['--reset'])) # option union
       }, aliases: [] },
-      list: { fn: -> { list }, aliases: [:ls, :history, :recent] },
+      list: { fn: -> { list(get_option(['--day', '-d'])) }, aliases: [:ls, :history, :recent] },
       sync: { fn: -> { sync }, aliases: [] },
       config: { fn: -> { config }, aliases: [] },
       touch: { fn: -> { touch(ARGV[1]) }, aliases: [] },
@@ -39,7 +39,7 @@ class Ftg
     private_config = JSON.parse(File.open("#{@ftg_dir}/config/private.json", 'r').read)
     public_config = JSON.parse(File.open("#{@ftg_dir}/config/public.json", 'r').read)
     @config = public_config.deep_merge(private_config)
-    @ftg_logger = FtgLogger.new("#{@ftg_dir}/log/ftg.log")
+    @ftg_logger = FtgLogger.new(@ftg_dir)
   end
 
 
@@ -118,6 +118,7 @@ Command list:
     end
     @ftg_logger.add_log('ftg_start', task)
     status
+    @ftg_logger.update_current
   end
 
   def stop(all)
@@ -126,6 +127,7 @@ Command list:
       break unless all
     end
     status
+    @ftg_logger.update_current
   end
 
   def pause
@@ -135,11 +137,13 @@ Command list:
     end
     @ftg_logger.add_log('ftg_start', 'pause')
     status
+    @ftg_logger.update_current
   end
 
   def resume
     @ftg_logger.add_log('ftg_stop', 'pause')
     status
+    @ftg_logger.update_current
   end
 
   def touch(task)
@@ -154,6 +158,7 @@ Command list:
     end
     @ftg_logger.remove_logs(task)
     status
+    @ftg_logger.update_current
   end
 
   def gtfo(day, restore, reset)
@@ -173,6 +178,10 @@ Command list:
         puts "next tasks: #{current_logs[1..-1].map { |l| l[:task_name].light_blue }.join(', ')}"
       end
     end
+  end
+
+  def current
+    puts `cat #{@ftg_dir}/current.txt`
   end
 
   def edit(day, restore, reset)
@@ -213,8 +222,50 @@ Command list:
     FtgStats.new(false).run
   end
 
-  def list
+  def list(days)
+    days ||= 14
+    begin_time = Time.now.to_i - (days.to_i * 24 * 3600)
 
+    # Date.parse(day).to_time.to_i
+    git_branches_raw = `git for-each-ref --sort=-committerdate --format='%(refname:short) | %(committerdate:iso)' refs/heads/` rescue nil
+
+    git_branches = []
+    git_branches_raw.split("\n").map do |b|
+      parts = b.split(' | ')
+      next if parts.count != 2
+      timestamp = DateTime.parse(parts[1]).to_time.to_i
+      if timestamp > begin_time
+        git_branches << [timestamp, parts[0]]
+      end
+    end
+
+    commands_log_path = "#{@ftg_dir}/log/commands.log"
+    history_branches = []
+    `tail -n #{days * 500} #{commands_log_path}`.split("\n").each do |command|
+      parts = command.split("\t")
+      time = parts[5].to_i
+      branch = parts[4]
+      if time > begin_time && branch != 'no_branch'
+        history_branches << [time, branch]
+      end
+    end
+    history_branches = history_branches.group_by { |e| e[1] }.map { |k, v| [v.last[0], k] }
+
+    ftg_log_path = "#{@ftg_dir}/log/ftg.log"
+    ftg_tasks = []
+    `tail -n #{days * 100} #{ftg_log_path}`.split("\n").each do |log|
+      parts = log.split("\t")
+      task = parts[1]
+      time = parts[2].to_i
+      if time > begin_time
+        ftg_tasks << [time, task]
+      end
+    end
+    ftg_tasks = ftg_tasks.group_by { |e| e[1] }.map { |k, v| [v.last[0], k] }
+
+    all_tasks = git_branches + history_branches + ftg_tasks
+    all_tasks = all_tasks.sort_by { |e| -e[0] }.group_by { |e| e[1] }.map { |task, times| task }
+    puts all_tasks.join("\n")
   end
 
   def migrate
