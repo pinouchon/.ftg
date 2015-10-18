@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ftg (2.1)
+    ftg (2.1.1)
       activerecord (>= 4.0.13)
       awesome_print (>= 1.3.11)
       httparty (>= 0.13.7)
