@@ -3,5 +3,3 @@
 require 'ftg'
 
 Ftg.new.run
-#chatter = Zerp::Chatter.new
-#chatter.say_hello

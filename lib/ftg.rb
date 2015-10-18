@@ -51,7 +51,7 @@ class Ftg
 
     ActiveRecord::Base.establish_connection(
       adapter: 'sqlite3',
-      database: 'db/ftg.sqlite3'
+      database: "#{@ftg_dir}/db/ftg.sqlite3"
     )
     fail('Cannot open task connection') unless Task.connection
   end
@@ -80,7 +80,6 @@ Command list:
   mail                               Send an email
   stats [-d <day>]                   Show time stats
   current                            Show current task
-  pop                                Stop current task and resume previous one
   touch <task>                       Start and end a task right away
   remove <task>                      Delete a task
   list                               List of tasks/meetings of the day
@@ -311,6 +310,3 @@ Command list:
     pause
   end
 end
-
-
-# Ftg.new.run
