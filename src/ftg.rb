@@ -1,56 +1,46 @@
-require 'pry'
+# require 'pry'
 require_relative './colors'
 require_relative './utils'
+require_relative './ftg_options'
+require_relative './ftg_logger'
 require 'json'
 require 'date'
 
 class Ftg
+  include FtgOptions
+
   def initialize
+
     @commands = {
       help: { fn: -> { help }, aliases: [] },
-      status: { fn: -> { in_progress }, aliases: [] },
+      status: { fn: -> { status }, aliases: [:current, :stack] },
       stats: { fn: -> { stats }, aliases: [] },
-      start: { fn: -> { in_progress }, aliases: [] },
-      stop: { fn: -> { in_progress }, aliases: [] },
-      pause: { fn: -> { in_progress }, aliases: [] },
-      resume: { fn: -> { in_progress }, aliases: [] },
-      current: { fn: -> { in_progress }, aliases: [] },
-      pop: { fn: -> { in_progress }, aliases: [] },
+      start: { fn: -> { start(ARGV[1]) }, aliases: [] },
+      stop: { fn: -> { stop(get_option(['--all'])) }, aliases: [:end, :pop] },
+      pause: { fn: -> { pause }, aliases: [] },
+      resume: { fn: -> { resume }, aliases: [] },
       edit: { fn: -> {
-        edit(day_option, get_option(['--restore']), get_option(['--reset']))
+        edit(day_option, get_option(['--restore']), get_option(['--reset'])) # option union
       }, aliases: [] },
-      list: { fn: -> { in_progress }, aliases: [] },
+      list: { fn: -> { in_progress }, aliases: [:ls, :history] },
       sync: { fn: -> { sync }, aliases: [] },
       config: { fn: -> { in_progress }, aliases: [] },
-      touch: { fn: -> { in_progress }, aliases: [] },
+      touch: { fn: -> { touch(ARGV[1]) }, aliases: [] },
       delete: { fn: -> { in_progress }, aliases: [:remove] },
-      email: { fn: -> { email(day_option) }, aliases: [] },
+      email: { fn: -> { email(day_option) }, aliases: [:mail] },
       recap: { fn: -> { in_progress }, aliases: [] },
       migrate: { fn: -> { migrate }, aliases: [] },
       console: { fn: -> { console }, aliases: [] },
       coffee: { fn: -> { coffee(get_option(['--big'])) } }
     }
 
-    private_config = JSON.parse(File.open("#{ENV['HOME']}/.ftg/config/private.json", 'r').read)
-    public_config = JSON.parse(File.open("#{ENV['HOME']}/.ftg/config/public.json", 'r').read)
+    @ftg_dir = "#{ENV['HOME']}/.ftg"
+    private_config = JSON.parse(File.open("#{@ftg_dir}/config/private.json", 'r').read)
+    public_config = JSON.parse(File.open("#{@ftg_dir}/config/public.json", 'r').read)
     @config = public_config.deep_merge(private_config)
+    @ftg_logger = FtgLogger.new("#{@ftg_dir}/log/ftg.log")
   end
 
-  def get_option(names)
-    ARGV.each_with_index do |opt_name, i|
-      return (ARGV[i + 1] || 1) if names.include?(opt_name)
-    end
-    nil
-  end
-
-  def day_option
-    day_option = get_option(['-d', '--day'])
-    day_option ||= '0'
-
-    is_integer?(day_option) ?
-      Time.at(Time.now.to_i - day_option.to_i * 86400).strftime('%F') :
-      Date.parse(day_option).strftime('%F')
-  end
 
   def require_models
     require 'active_record'
@@ -59,32 +49,22 @@ class Ftg
     require_relative './task_formatter'
 
     ActiveRecord::Base.establish_connection(
-      :adapter => 'sqlite3',
-      :database => 'db/ftg.sqlite3'
+      adapter: 'sqlite3',
+      database: 'db/ftg.sqlite3'
     )
     fail('Cannot open task connection') unless Task.connection
-    # ActiveRecord::Schema.define do
-    #   create_table :tasks do |t|
-    #     t.column :id
-    #   end
-    # end
-  end
-
-  def get_command(name)
-    @commands.keys.find { |opt| opt.to_s.start_with?(name) }
-  end
-
-  def fail(message = nil)
-    STDERR.puts message if message
-    exit(1)
   end
 
   def run
     help(1) if ARGV[0].nil?
     cmd = get_command(ARGV[0])
     fail("Unknown command #{ARGV[0]}") if cmd.nil?
-    @commands[cmd][:fn].call
+    cmd[1][:fn].call
   end
+
+#####################################################################################
+####################################### COMMANDS ####################################
+#####################################################################################
 
   def help(exit_code = 0)
     help = <<-HELP
@@ -110,8 +90,64 @@ Command list:
     exit(exit_code)
   end
 
-  def is_integer?(str)
-    str.to_i.to_s == str
+  def start(task)
+    if task == 'auto' || task == 'current_branch'
+      task = `git rev-parse --abbrev-ref HEAD`.strip
+    end
+    if task.nil? || task == ''
+      fail('Enter a task. Eg: ftg start jt-1234')
+    end
+    unclosed_logs = @ftg_logger.get_unclosed_logs
+    if unclosed_logs[0] && unclosed_logs[0][:task_name] == 'pause'
+      status
+      puts
+      fail('Cannot start a task while on pause. Use "ftg resume" first')
+    end
+    if unclosed_logs.find { |l| l[:task_name] == task }
+      status
+      puts
+      fail("Task #{task} already started")
+    end
+    @ftg_logger.add_log('ftg_start', task)
+    # puts "Now working on task #{task}"
+    status
+  end
+
+  def stop(all)
+    @ftg_logger.get_unclosed_logs.each do |log|
+      @ftg_logger.add_log('ftg_stop', log[:task_name])
+      break unless all
+    end
+    status
+  end
+
+  def pause
+    @ftg_logger.add_log('ftg_start', 'pause')
+    status
+  end
+
+  def resume
+    @ftg_logger.add_log('ftg_stop', 'pause')
+    status
+  end
+
+  def touch(task)
+    @ftg_logger.add_log('ftg_start', task)
+    @ftg_logger.add_log('ftg_stop', task)
+    status
+  end
+
+  def status
+    current_logs = @ftg_logger.get_unclosed_logs
+    if current_logs.empty?
+      puts 'No current task'
+    else
+      task_name = current_logs[0][:task_name]
+      puts(task_name == 'pause' ? 'On pause' : "Now working on: [#{task_name.cyan}]")
+      unless current_logs[1..-1].empty?
+        puts "next tasks: #{current_logs[1..-1].map { |l| l[:task_name].light_blue }.join(', ')}"
+      end
+    end
   end
 
   def edit(day, restore, reset)
@@ -163,7 +199,7 @@ Command list:
 
   def render_email(day, tasks)
     max_len = TaskFormatter.max_length(tasks)
-    content = "Salut,\n\nblabla\n\n#{day}\n"
+    content = "Salut,\n\n<Expliquer ici pourquoi le sprint ne sera pas fini à temps>\n\n#{day}\n"
     content += tasks.map do |task|
       TaskFormatter.new.format(task, max_len).line_for_email
     end.join("\n")
@@ -175,8 +211,11 @@ Command list:
     email = @config['ftg']['recap_mailto'].join(', ')
     week_days_fr = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
     week_day_fr = week_days_fr[Date.parse(day).strftime('%u').to_i - 1]
+    week_day_en = Time.now.strftime('%A').downcase
+    greeting = @config['ftg']['greetings'][week_day_en] || nil
     subject = "Recap #{week_day_fr} #{day}"
-    body = render_email(day, Task.where(day: day).where(deleted_at: nil))
+
+    body = [render_email(day, Task.where(day: day).where(deleted_at: nil)), greeting].compact.join("\n\n")
     system('open', "mailto: #{email}?subject=#{subject}&body=#{body}")
   end
 

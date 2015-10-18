@@ -31,4 +31,8 @@ class String
     colorize(90)
   end
 
+  def cyan
+    colorize(96)
+  end
+
 end

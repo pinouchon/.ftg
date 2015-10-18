@@ -17,4 +17,8 @@ class Utils
     secs ||= 0
     '%02sh %02dm' % [secs / 3600, (secs / 60) % 60]
   end
+
+  def self.is_integer?(str)
+    str.to_i.to_s == str
+  end
 end

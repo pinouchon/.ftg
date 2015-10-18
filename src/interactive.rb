@@ -86,7 +86,6 @@ class Interactive
       print_tasks
       input = read_char
 
-      # puts input
       exit if [KEY_CTRL_C, KEY_ESCAPE].include? input
       return @deleted_tasks if [KEY_ENTER, 'q'].include? input
 

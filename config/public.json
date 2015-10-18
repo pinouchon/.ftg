@@ -16,6 +16,15 @@
       "friday": [],
       "saturday": [],
       "sunday": []
+    },
+    "greetings": {
+      "monday": "A demain",
+      "tuesday": "A demain",
+      "wednesday": "A demain",
+      "thursday": "A demain",
+      "friday": "Bon week end",
+      "saturday": "A lundi",
+      "sunday": "A lundi"
     }
   }
 }
