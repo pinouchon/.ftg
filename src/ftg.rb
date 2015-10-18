@@ -1,4 +1,3 @@
-# require 'pry'
 require_relative './colors'
 require_relative './utils'
 require_relative './ftg_options'
@@ -13,8 +12,11 @@ class Ftg
 
     @commands = {
       help: { fn: -> { help }, aliases: [] },
+      gtfo: { fn: -> {
+        gtfo(day_option, get_option(['--restore']), get_option(['--reset'])) # option union
+      }, aliases: [:recap, :leave, :wrap_up] },
       status: { fn: -> { status }, aliases: [:current, :stack] },
-      stats: { fn: -> { stats }, aliases: [] },
+      git_stats: { fn: -> { git_stats }, aliases: [] },
       start: { fn: -> { start(ARGV[1]) }, aliases: [] },
       stop: { fn: -> { stop(get_option(['--all'])) }, aliases: [:end, :pop] },
       pause: { fn: -> { pause }, aliases: [] },
@@ -22,15 +24,14 @@ class Ftg
       edit: { fn: -> {
         edit(day_option, get_option(['--restore']), get_option(['--reset'])) # option union
       }, aliases: [] },
-      list: { fn: -> { in_progress }, aliases: [:ls, :history] },
+      list: { fn: -> { list }, aliases: [:ls, :history, :recent] },
       sync: { fn: -> { sync }, aliases: [] },
-      config: { fn: -> { in_progress }, aliases: [] },
+      config: { fn: -> { config }, aliases: [] },
       touch: { fn: -> { touch(ARGV[1]) }, aliases: [] },
-      delete: { fn: -> { in_progress }, aliases: [:remove] },
+      delete: { fn: -> { delete(ARGV[1]) }, aliases: [:remove] },
       email: { fn: -> { email(day_option) }, aliases: [:mail] },
-      recap: { fn: -> { in_progress }, aliases: [] },
       migrate: { fn: -> { migrate }, aliases: [] },
-      console: { fn: -> { console }, aliases: [] },
+      console: { fn: -> { console }, aliases: [:shell] },
       coffee: { fn: -> { coffee(get_option(['--big'])) } }
     }
 
@@ -73,8 +74,8 @@ By default, the day param is the current day.
 
 Command list:
   start, stop, pause, resume <task>  Manage tasks
-  recap                              Executes: edit, sync, mail
-  edit <task> [-d <day>, --restore]  Manually edit times
+  gtfo                               Executes: edit, sync, mail
+  edit <task> [-d <day>, --reset]    Manually edit times
   sync [-d <day>]                    Sync times with jira and toggl
   mail                               Send an email
   stats [-d <day>]                   Show time stats
@@ -90,6 +91,16 @@ Command list:
     exit(exit_code)
   end
 
+  def config
+    require 'ap'
+    puts 'Settings are in the ./config folder:'
+    puts '  public.json     default settings. Do not edit manually. Added to git'
+    puts '  private.json    personal settings. This will overwrite public.json. Ignored in git'
+
+    puts "\nCurrent config:\n"
+    ap @config
+  end
+
   def start(task)
     if task == 'auto' || task == 'current_branch'
       task = `git rev-parse --abbrev-ref HEAD`.strip
@@ -97,19 +108,15 @@ Command list:
     if task.nil? || task == ''
       fail('Enter a task. Eg: ftg start jt-1234')
     end
-    unclosed_logs = @ftg_logger.get_unclosed_logs
-    if unclosed_logs[0] && unclosed_logs[0][:task_name] == 'pause'
+    if @ftg_logger.on_pause?
       status
-      puts
-      fail('Cannot start a task while on pause. Use "ftg resume" first')
+      fail("\nCannot start a task while on pause. Use \"ftg resume\" first")
     end
-    if unclosed_logs.find { |l| l[:task_name] == task }
+    if @ftg_logger.get_unclosed_logs.find { |l| l[:task_name] == task }
       status
-      puts
-      fail("Task #{task} already started")
+      fail("\nTask #{task} already started")
     end
     @ftg_logger.add_log('ftg_start', task)
-    # puts "Now working on task #{task}"
     status
   end
 
@@ -122,6 +129,10 @@ Command list:
   end
 
   def pause
+    if @ftg_logger.on_pause?
+      status
+      fail("\nAlready on pause")
+    end
     @ftg_logger.add_log('ftg_start', 'pause')
     status
   end
@@ -135,6 +146,20 @@ Command list:
     @ftg_logger.add_log('ftg_start', task)
     @ftg_logger.add_log('ftg_stop', task)
     status
+  end
+
+  def delete(task)
+    if task == '--all'
+      @ftg_logger.remove_all_logs
+    end
+    @ftg_logger.remove_logs(task)
+    status
+  end
+
+  def gtfo(day, restore, reset)
+    edit(day, restore, reset)
+    email(day)
+    puts "sync soon..."
   end
 
   def status
@@ -183,18 +208,18 @@ Command list:
     abort('todo')
   end
 
-  def stats
+  def git_stats
     require_relative './ftg_stats'
     FtgStats.new(false).run
+  end
+
+  def list
+
   end
 
   def migrate
     require_models
     CreateTasks.new.up
-  end
-
-  def in_progress
-    abort('in progress...')
   end
 
   def render_email(day, tasks)
@@ -231,7 +256,8 @@ Command list:
     require_relative './coffee'
     puts(big ? Coffee.coffee2 : Coffee.coffee1)
     puts "\nHave a nice coffee !"
-    # call pause
+    puts '=========================================='
+    pause
   end
 end
 

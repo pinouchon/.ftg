@@ -9,6 +9,26 @@ class FtgLogger
     `echo "#{lines.join('\t')}" >> #{@log_file}`
   end
 
+  def remove_all_logs
+    `echo "" > #{@log_file}`
+  end
+
+  def remove_logs(name)
+    count = 0
+    logs = get_logs
+    logs.keep_if do |log|
+      cond = log[:task_name] != name || log[:timestamp].to_i <= Time.now.to_i - 24*3600
+      count += 1 unless cond
+      cond
+    end
+
+    File.open(@log_file, 'w') do |f|
+      f.write(logs.map{|l| l.values.join("\t")}.join("\n") + "\n")
+    end
+
+    puts "Removed #{count} entries"
+  end
+
   def get_logs
     File.open(@log_file, 'r') do |file|
       file.read.split("\n").map do |e|
@@ -16,6 +36,11 @@ class FtgLogger
         { command: parts[0], task_name: parts[1], timestamp: parts[2] }
       end
     end
+  end
+
+  def on_pause?
+    unclosed_logs = get_unclosed_logs
+    unclosed_logs[0] && unclosed_logs[0][:task_name] == 'pause'
   end
 
   def get_unclosed_logs
