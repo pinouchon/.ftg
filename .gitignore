@@ -3,3 +3,13 @@ log/*
 db/*
 config/private.json
 current.txt
+ftg_old_/
+/.bundle/
+/.yardoc
+/Gemfile.lock
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/spec/reports/
+/tmp/
