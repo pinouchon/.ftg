@@ -1,6 +1,3 @@
-require 'uri'
-require 'httparty'
-
 class FtgSync
   TOGGL_API_TOKEN = '317c14d9c290d3c6cc1e4f35a2ad8c80'
   TIME_ENTRIES_URL = 'https://toggl.com/api/v8/time_entries'
@@ -17,6 +14,9 @@ class FtgSync
   }
 
   def initialize
+    require 'uri'
+    require 'httparty'
+
     @headers = {
       'Content-Type' => 'application/json'
     }

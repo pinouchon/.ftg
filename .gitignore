@@ -3,7 +3,6 @@ log/*
 db/*
 config/private.json
 current.txt
-ftg_old_/
 /.bundle/
 /.yardoc
 /Gemfile.lock

@@ -1,5 +1,5 @@
-require_relative './colors'
-require_relative './utils'
+require_relative '../colors'
+require_relative '../utils'
 require_relative './ftg_options'
 require_relative './ftg_logger'
 require 'json'
@@ -45,9 +45,9 @@ class Ftg
 
   def require_models
     require 'active_record'
-    require_relative './models/task'
-    require_relative './migrations/create_tasks'
-    require_relative './task_formatter'
+    require_relative '../models/task'
+    require_relative '../migrations/create_tasks'
+    require_relative '../task_formatter'
 
     ActiveRecord::Base.establish_connection(
       adapter: 'sqlite3',
@@ -184,7 +184,7 @@ Command list:
   end
 
   def edit(day, restore, reset)
-    require_relative './interactive'
+    require_relative '../interactive'
     require_relative './ftg_stats'
     require_models
 
@@ -296,14 +296,14 @@ Command list:
 
   def console
     require 'pry'
-    require_relative './interactive'
+    require_relative '../interactive'
     require_relative './ftg_stats'
     require_models
     binding.pry
   end
 
   def coffee(big = false)
-    require_relative './coffee'
+    require_relative '../coffee'
     puts(big ? Coffee.coffee2 : Coffee.coffee1)
     puts "\nHave a nice coffee !"
     puts '=========================================='
