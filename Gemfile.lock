@@ -17,10 +17,8 @@ GEM
       thread_safe (~> 0.1)
       tzinfo (~> 0.3.37)
     arel (4.0.2)
-    awesome_print (1.6.1)
     builder (3.1.4)
     coderay (1.1.0)
-    dotenv (2.0.2)
     httparty (0.13.7)
       json (~> 1.8)
       multi_xml (>= 0.5.2)
@@ -44,9 +42,8 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord
-  awesome_print
-  dotenv
   httparty
+  json
   pry
   sqlite3
 

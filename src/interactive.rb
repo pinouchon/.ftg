@@ -12,17 +12,15 @@ class Interactive
   SEQ_ERASE_LEFT = "\e[D"
   SEQ_ERASE_TO_END_OF_LINE = "\033[K"
 
-  BAR_SIZE = 40
-  MAX_LEN = 94
-
   def initialize
     @term_width = `/usr/bin/env tput cols`.to_i
+    @formatter = TaskFormatter.new
 
-    if @term_width < MAX_LEN
-      message = " Your terminal must be at least #{MAX_LEN} columns wide "
+    if @term_width < @formatter.max_width
+      message = " Your terminal must be at least #{@formatter.max_width} columns wide "
       STDERR.puts('<' + message.
-                    rjust(MAX_LEN + 1 - message.length / 2, '-').
-                    ljust(MAX_LEN - 2, '-') + '>')
+                    rjust(@formatter.max_width + 1 - message.length / 2, '-').
+                    ljust(@formatter.max_width - 2, '-') + '>')
       exit(1)
     end
   end
@@ -55,34 +53,22 @@ class Interactive
     return c
   end
 
-  def task_len
-    [@tasks.map { |e| e.name.length }.max, 60].min
-  end
-
   def print_tasks
-    task_len = self.task_len
+    task_len = TaskFormatter.max_length(@tasks)
 
     puts @header
     @tasks.each_with_index do |task, i|
-      time_len = [task.duration / 300, BAR_SIZE].min
-      if time_len >= BAR_SIZE
-        time_bar = "[#{('=' * (time_len - 2)) + '...'}"
-      else
-        time_bar = "[#{('=' * time_len).ljust(BAR_SIZE, ' ')}]"
-      end
-      task_formatted = task.name[0, task_len].ljust(task_len, ' ')
-      sync_status = !!task.synced_at ? '✔' : '✘'
-      line = "  #{task_formatted} #{Utils.format_time(task.duration)}  #{time_bar}"
+      @formatter.format(task, task_len)
 
       print "\e[47m" + "\e[30m" if i == @task_selected
-      print line #[0..@term_width - 1]
+      print @formatter.line_for_interactive
       print "\e[0m" if i == @task_selected
-      print '  ' + sync_status
+      print '  ' + @formatter.sync_status
       print "\033[K"
       puts ''
     end
     total_time = Utils.format_time(@tasks.map(&:duration).reduce(:+))
-    puts "\e[100m  #{''.ljust(task_len, ' ')} #{total_time}  #{''.rjust(BAR_SIZE, ' ')}  \e[0m\033[K"
+    puts "\e[100m  #{''.ljust(task_len, ' ')} #{total_time}  #{''.rjust(@formatter.bar_size, ' ')}  \e[0m\033[K"
 
     puts "\033[K"
     print "\033[#{@tasks.length + 3}A"
@@ -91,7 +77,8 @@ class Interactive
 
   def interactive_edit(tasks)
     @tasks = tasks
-    @header = '2015-06-03  ' + '[↑|↓] navigate, [⇽|⇾] adjust time, [⇐ ] remove, [↵ ] save'.grey
+    @deleted_tasks = []
+    @header = '2015-06-03  ' + '[↑|↓] navigate, [⇽|⇾] adjust time, [⇐ ] remove, [↵ |q] save, [esc] cancel'.grey
 
     @task_selected = 0
 
@@ -101,7 +88,7 @@ class Interactive
 
       # puts input
       exit if [KEY_CTRL_C, KEY_ESCAPE].include? input
-      return if [KEY_ENTER, 'q'].include? input
+      return @deleted_tasks if [KEY_ENTER, 'q'].include? input
 
       top_down = { KEY_DOWN => +1, KEY_TOP => -1 }
       if top_down.keys.include? input
@@ -113,9 +100,12 @@ class Interactive
         time = @tasks[@task_selected].duration
         time = [time - (time % 300) + left_right[input], 0].max
         @tasks[@task_selected].duration = time
+        @tasks[@task_selected].edited_at = Time.now
       end
       if input == KEY_BACKSPACE
         next if @tasks.length <= 1
+        @tasks[@task_selected].deleted_at = Time.now
+        @deleted_tasks << @tasks[@task_selected]
         @tasks.delete_at(@task_selected)
         @task_selected -= 1 if @task_selected == @tasks.length
         @task_selected %= @tasks.length

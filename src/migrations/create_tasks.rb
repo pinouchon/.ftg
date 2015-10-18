@@ -5,6 +5,7 @@ class CreateTasks < ActiveRecord::Migration
       t.string :name
       t.datetime :synced_at
       t.datetime :edited_at
+      t.datetime :deleted_at
       t.integer :duration
       t.integer :toggl_activity_id
       t.timestamps
