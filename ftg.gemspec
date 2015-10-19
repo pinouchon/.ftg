@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = 'ftg'
-  spec.version       = '2.1.3'#Ftg::VERSION
+  spec.version       = '2.1.4'#Ftg::VERSION
   spec.authors       = ['pinouchon']
   spec.email         = ['pinouchon@gmail.com']
 

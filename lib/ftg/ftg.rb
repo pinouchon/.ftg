@@ -201,7 +201,7 @@ Command list:
       tasks << task if restore || !task.deleted_at
     end
 
-    deleted_tasks = Interactive.new.interactive_edit(tasks)
+    deleted_tasks = Interactive.new.interactive_edit(tasks, day)
     tasks.each do |task|
       task.deleted_at = nil if restore
       task.save if restore || task.changed.include?('edited_at')

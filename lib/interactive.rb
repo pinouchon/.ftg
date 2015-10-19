@@ -75,10 +75,10 @@ class Interactive
   end
 
 
-  def interactive_edit(tasks)
+  def interactive_edit(tasks, day)
     @tasks = tasks
     @deleted_tasks = []
-    @header = '2015-06-03  ' + '[↑|↓] navigate, [⇽|⇾] adjust time, [⇐ ] remove, [↵ |q] save, [esc] cancel'.grey
+    @header = "#{day}  [↑|↓] navigate, [⇽|⇾] adjust time, [⇐ ] remove, [↵ |q] save, [esc] cancel".grey
 
     @task_selected = 0
 

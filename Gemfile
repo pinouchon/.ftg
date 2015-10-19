@@ -4,9 +4,9 @@ gemspec
 
 ruby '2.2.3'
 
-gem 'httparty'
-gem 'pry'
-gem 'activerecord'
-gem 'sqlite3'
-gem 'json'
-gem 'awesome_print'
+gem 'httparty', require: false
+gem 'pry', require: false
+gem 'activerecord', require: false
+gem 'sqlite3', require: false
+gem 'json', require: false
+gem 'awesome_print', require: false
