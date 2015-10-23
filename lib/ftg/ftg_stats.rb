@@ -101,7 +101,9 @@ class FtgStats
     end
   end
 
+  # Full sync
   def sync_toggl
+    raise 'deprecated'
     require_relative 'ftg_sync'
     require 'pry'
     sync = FtgSync.new
@@ -125,7 +127,7 @@ class FtgStats
           duration = by_idle[false].to_i
           # duration = duration_parts[0].to_i * 3600 + duration_parts[1].to_i * 60 + duration_parts[2].to_i
           type = sync.maintenance?(jt) ? :maintenance : :sprint
-          sync.create_entry("#{branch} [via FTG]", duration, time, type)
+          sync.create_activity("#{branch} [via FTG]", duration, time, type)
           i += 1
 
           puts "logging #{branch}: #{by_idle[false]}"

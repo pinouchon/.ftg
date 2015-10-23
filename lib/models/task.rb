@@ -4,7 +4,8 @@ class Task < ActiveRecord::Base
   end
 
   def jira_id
-    Utils.extract_jt(name)
+    match = name[/^jt-[0-9]+/]
+    match ? match.upcase : nil
   end
 
   def self.not_deleted

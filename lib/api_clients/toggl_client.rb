@@ -19,7 +19,7 @@ class TogglClient < ApiClient
     }
   end
 
-  def create_entry(description, duration_sec, start_date, type)
+  def create_activity(description, duration_sec, start_date, type)
     # puts "creating entry #{description}, #{Utils.format_time(duration_sec)}, #{start_date}, #{type}"
     params = { 'time_entry' =>
                  { 'description' => description, 'tags' => [],
@@ -32,7 +32,7 @@ class TogglClient < ApiClient
     HTTParty.post(TIME_ENTRIES_URL, @base_params.merge({ body: params.to_json }))
   end
 
-  def delete_entry(activity_id)
+  def delete_activity(activity_id)
     HTTParty.delete("#{TIME_ENTRIES_URL}/#{activity_id}", @base_params.merge({}))
   end
 

@@ -28,7 +28,9 @@ class TaskFormatter
   end
 
   def sync_status
-    @task.jira_synced_at && task.toggl_synced_at ? '✔' : '✘'
+    cond = @task.jira_logged_duration == @task.duration && @task.toggl_logged_duration == @task.duration
+    # @task.jira_synced_at && @task.toggl_synced_at ? '✔' : '✘'
+    cond ? '✔' : '✘'
   end
 
   def line_for_interactive
@@ -36,14 +38,9 @@ class TaskFormatter
     "  #{task_formatted} #{@task.duration_formatted}  #{time_bar}"
   end
 
-  def extract_jt(name)
-    match = name[/^jt-[0-9]+/]
-    match ? match.upcase : nil
-  end
-
   def line_for_email
     task_formatted = @task.name[0, @task_len]
-    jt = extract_jt(@task.name)
+    jt = @task.jira_id
     jira_link = jt ? "https://jobteaser.atlassian.net/browse/#{jt}" : ''
     "  #{time_bar('#', '  ', '..')} #{@task.duration_formatted}  #{task_formatted} #{jira_link}"
   end
