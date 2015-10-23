@@ -3,10 +3,11 @@ class FtgStats
 
   attr_accessor :stats
 
-  def initialize(only_last_day)
+  def initialize(only_last_day = false)
     load_data(only_last_day)
     crunch
     group
+    # sync_toggl
   end
 
   def run
@@ -101,6 +102,7 @@ class FtgStats
   end
 
   def sync_toggl
+    require_relative 'ftg_sync'
     require 'pry'
     sync = FtgSync.new
     i = 0
@@ -119,8 +121,9 @@ class FtgStats
           end_of_day = begining_of_day + (24*3600)
 
           jt = branch[/(jt-[0-9]+)/]
-          duration_parts = by_idle[false].split(':')
-          duration = duration_parts[0].to_i * 3600 + duration_parts[1].to_i * 60 + duration_parts[2].to_i
+          # duration_parts = by_idle[false].split(':')
+          duration = by_idle[false].to_i
+          # duration = duration_parts[0].to_i * 3600 + duration_parts[1].to_i * 60 + duration_parts[2].to_i
           type = sync.maintenance?(jt) ? :maintenance : :sprint
           sync.create_entry("#{branch} [via FTG]", duration, time, type)
           i += 1
@@ -133,3 +136,5 @@ class FtgStats
   end
 
 end
+
+# FtgStats.new

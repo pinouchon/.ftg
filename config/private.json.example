@@ -1,6 +1,15 @@
 {
   "ftg": {
-    "JIRA_USERNAME": "benjamin.crouzier",
-    "JIRA_PASSWORD": "morebabyplease2"
+    "plugins": {
+      "toggl": {
+        "enabled": true,
+        "api_token": "FTG_API_TOKEN_HERE"
+      },
+      "jira": {
+        "enabled": true,
+        "username": "jira_user",
+        "password": "jira_password"
+      }
+    }
   }
 }

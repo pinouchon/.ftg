@@ -28,7 +28,7 @@ class TaskFormatter
   end
 
   def sync_status
-    !!@task.synced_at ? '✔' : '✘'
+    @task.jira_synced_at && task.toggl_synced_at ? '✔' : '✘'
   end
 
   def line_for_interactive

@@ -1,10 +1,26 @@
 {
   "ftg": {
-    "TOGGL_API_TOKEN": null,
-    "TOGGL_WORKSPACE_ID": null,
-    "TOGGL_PIDS": null,
-    "JIRA_USERNAME": null,
-    "JIRA_PASSWORD": null,
+    "plugins": {
+      "toggl": {
+        "enabled": true,
+        "api_token": null,
+        "workspace_id": 939576,
+        "project_ids": {
+          "autres": 9800260,
+          "maintenance": 9800223,
+          "projects": 10669186,
+          "reu": 9800248,
+          "sprint": 9800218,
+          "support": 9800226,
+          "technical": 9800254
+        }
+      },
+      "jira": {
+        "enabled": true,
+        "username": null,
+        "password": null
+      }
+    },
     "recap_mailto": ["romain.champourlier@jobteaser.com", "paul-armand.assus@jobteaser.com"],
     "projects": ["sprint", "maintenance", "project", "meeting", "recruitment", "support", "technical", "other"],
     "default_tasks": {

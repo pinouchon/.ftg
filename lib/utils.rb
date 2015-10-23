@@ -21,4 +21,8 @@ class Utils
   def self.is_integer?(str)
     str.to_i.to_s == str
   end
+
+  def self.extract_jt(str)
+    str[/(jt-[0-9]+)/]
+  end
 end

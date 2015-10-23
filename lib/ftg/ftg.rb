@@ -25,12 +25,12 @@ class Ftg
         edit(day_option, get_option(['--restore']), get_option(['--reset'])) # option union
       }, aliases: [] },
       list: { fn: -> { list(get_option(['--day', '-d'])) }, aliases: [:ls, :history, :recent] },
-      sync: { fn: -> { sync }, aliases: [] },
+      sync: { fn: -> { sync(day_option) }, aliases: [] },
       config: { fn: -> { config }, aliases: [] },
       touch: { fn: -> { touch(ARGV[1]) }, aliases: [] },
       delete: { fn: -> { delete(ARGV[1]) }, aliases: [:remove] },
       email: { fn: -> { email(day_option) }, aliases: [:mail] },
-      migrate: { fn: -> { migrate }, aliases: [] },
+      migrate: { fn: -> { migrate(get_option(['--down'])) }, aliases: [] },
       console: { fn: -> { console }, aliases: [:shell] },
       coffee: { fn: -> { coffee(get_option(['--big'])) } }
     }
@@ -42,11 +42,12 @@ class Ftg
     @ftg_logger = FtgLogger.new(@ftg_dir)
   end
 
-
   def require_models
     require 'active_record'
     require_relative '../models/task'
+    require_relative '../models/category_cache'
     require_relative '../migrations/create_tasks'
+    require_relative '../migrations/create_category_caches'
     require_relative '../task_formatter'
 
     ActiveRecord::Base.establish_connection(
@@ -54,6 +55,18 @@ class Ftg
       database: "#{@ftg_dir}/db/ftg.sqlite3"
     )
     fail('Cannot open task connection') unless Task.connection
+    fail('Cannot open category_cache connection') unless CategoryCache.connection
+  end
+
+  def require_clients
+    require_relative '../api_clients/api_client'
+    require_relative '../api_clients/toggl_client'
+    require_relative '../api_clients/jira_client'
+
+    [
+      JiraClient.new(@config['ftg']['plugins']['jira']),
+      TogglClient.new(@config['ftg']['plugins']['toggl'])
+    ]
   end
 
   def run
@@ -183,6 +196,13 @@ Command list:
     puts `cat #{@ftg_dir}/current.txt`
   end
 
+  def ftg_category(jt)
+    jira_category = jira_category(jt)
+    return 'maintenance' if jira_category == 'Maintenance'
+    return 'sprint' if jira_category.present?
+    nil
+  end
+
   def edit(day, restore, reset)
     require_relative '../interactive'
     require_relative './ftg_stats'
@@ -194,11 +214,11 @@ Command list:
       next if branch == 'unknown'
       by_idle = Hash[by_branch]
       scope = Task.where(day: day).where(name: branch)
-      scope.delete_all if reset
+      # scope.delete_all if reset
       task = scope.first_or_create
-      task.duration = task.edited_at ? task.duration : by_idle[false].to_i
+      task.duration = (task.edited_at && !reset) ? task.duration : by_idle[false].to_i
       task.save
-      tasks << task if restore || !task.deleted_at
+      tasks << task if restore || reset || !task.deleted_at
     end
 
     deleted_tasks = Interactive.new.interactive_edit(tasks, day)
@@ -211,9 +231,11 @@ Command list:
     end
   end
 
-  def sync
-    require_relative './ftg_sync'
-    abort('todo')
+  def sync(day)
+    require_relative '../sync'
+    require_models
+
+    Sync.new(*require_clients).run(day)
   end
 
   def git_stats
@@ -267,9 +289,15 @@ Command list:
     puts all_tasks.join("\n")
   end
 
-  def migrate
+  def migrate(down)
     require_models
-    CreateTasks.new.up
+    if down
+      CreateCategoryCaches.new.down
+      CreateTasks.new.down
+    else
+      CreateTasks.new.up
+      CreateCategoryCaches.new.up
+    end
   end
 
   def render_email(day, tasks)
@@ -310,3 +338,5 @@ Command list:
     pause
   end
 end
+
+Ftg.new.run
