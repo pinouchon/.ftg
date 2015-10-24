@@ -14,6 +14,15 @@ class FtgLogger
     `echo "" > #{@log_file}`
   end
 
+  def search_and_replace(from, to)
+    text = File.read(@log_file)
+    r = Regexp.quote(from)
+    count = text.scan(/#{r}/).count
+    new_contents = text.gsub(/#{r}/, "#{to}")
+    File.open(@log_file, 'w') { |file| file.puts new_contents }
+    count
+  end
+
   def remove_logs(name)
     count = 0
     logs = get_logs
@@ -59,7 +68,7 @@ class FtgLogger
   end
 
   def update_current
-    current = ''
+    current = 'auto'
     current_logs = get_unclosed_logs
     current = current_logs[0][:task_name] unless current_logs.empty?
     `echo "#{current}" > #{@ftg_dir}/current.txt`

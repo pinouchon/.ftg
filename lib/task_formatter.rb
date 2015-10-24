@@ -15,7 +15,7 @@ class TaskFormatter
   end
 
   def self.max_length(tasks)
-    [tasks.map { |e| e.name.length }.max || 0, 60].min
+    [tasks.map { |e| e.name_with_category.length }.max || 0, 60].min
   end
 
   def time_bar(full_char = '=', empty_char = ' ', ellipsis = '...')
@@ -34,12 +34,12 @@ class TaskFormatter
   end
 
   def line_for_interactive
-    task_formatted = @task.name[0, @task_len].ljust(@task_len, ' ')
+    task_formatted = @task.name_with_category[0, @task_len].ljust(@task_len, ' ')
     "  #{task_formatted} #{@task.duration_formatted}  #{time_bar}"
   end
 
   def line_for_email
-    task_formatted = @task.name[0, @task_len]
+    task_formatted = @task.name_with_category[0, @task_len]
     jt = @task.jira_id
     jira_link = jt ? "https://jobteaser.atlassian.net/browse/#{jt}" : ''
     "  #{time_bar('#', '  ', '..')} #{@task.duration_formatted}  #{task_formatted} #{jira_link}"

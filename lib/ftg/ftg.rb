@@ -15,10 +15,12 @@ class Ftg
         gtfo(day_option, get_option(['--restore']), get_option(['--reset'])) # option union
       }, aliases: [:recap, :leave, :wrap_up] },
       status: { fn: -> { status }, aliases: [:stack] },
+      console: { fn: -> { console }, aliases: [:shell] },
       current: { fn: -> { current }, aliases: [] },
       git_stats: { fn: -> { git_stats }, aliases: [] },
-      start: { fn: -> { start(ARGV[1]) }, aliases: [] },
-      stop: { fn: -> { stop(get_option(['--all'])) }, aliases: [:end, :pop] },
+      start: { fn: -> { start(ARGV[1]) }, aliases: [:begin] },
+      stop: { fn: -> { stop(get_option(['--all'])) }, aliases: [:end] },
+      pop: { fn: -> { stop(nil); resume }, aliases: [] },
       pause: { fn: -> { pause }, aliases: [] },
       resume: { fn: -> { resume }, aliases: [] },
       edit: { fn: -> {
@@ -28,10 +30,12 @@ class Ftg
       sync: { fn: -> { sync(day_option) }, aliases: [] },
       config: { fn: -> { config }, aliases: [] },
       touch: { fn: -> { touch(ARGV[1]) }, aliases: [] },
+      rename: { fn: -> { rename(ARGV[1], ARGV[2]) }, aliases: [] },
       delete: { fn: -> { delete(ARGV[1]) }, aliases: [:remove] },
       email: { fn: -> { email(day_option) }, aliases: [:mail] },
+      categories: { fn: -> { categories }, aliases: [] },
+      auto: { fn: -> { start('auto') }, aliases: [] },
       migrate: { fn: -> { migrate(get_option(['--down'])) }, aliases: [] },
-      console: { fn: -> { console }, aliases: [:shell] },
       coffee: { fn: -> { coffee(get_option(['--big'])) } }
     }
 
@@ -114,19 +118,31 @@ Command list:
   end
 
   def start(task)
-    if task == 'auto' || task == 'current_branch'
+    if task && task[/_/]
+      puts 'Warning:'.red + ' Use - instead of _ in task names (correct with ' +
+             "ftg rename #{task} #{task.gsub('_', '-')}".yellow + ')'
+    end
+    if task == 'current_branch'
       task = `git rev-parse --abbrev-ref HEAD`.strip
     end
     if task.nil? || task == ''
-      fail('Enter a task. Eg: ftg start jt-1234')
+      STDERR.puts 'Enter category/task. Example: ' + 'ftg start meeting/sprint'.yellow
+      STDERR.puts 'Recent tasks:'
+      STDERR.puts (get_list(nil)[0, 10] + ['-' * 30] + config_tasks).map { |e| "  #{e}" }.join("\n")
+      fail
     end
     if @ftg_logger.on_pause?
-      status
-      fail("\nCannot start a task while on pause. Use \"ftg resume\" first")
+      @ftg_logger.add_log('ftg_stop', 'pause')
     end
     if @ftg_logger.get_unclosed_logs.find { |l| l[:task_name] == task }
       status
       fail("\nTask #{task} already started")
+    end
+    if !Utils.extract_jt(task) && !task[/\//]
+      STDERR.puts "Enter #{'category'.yellow}/task. Example: " + 'ftg start meeting/sprint'.yellow
+      STDERR.puts 'Available categories:'
+      STDERR.puts get_categories.map { |e| "  #{e}" }.join("\n")
+      fail
     end
     @ftg_logger.add_log('ftg_start', task)
     status
@@ -136,8 +152,12 @@ Command list:
   def stop(all)
     @ftg_logger.get_unclosed_logs.each do |log|
       @ftg_logger.add_log('ftg_stop', log[:task_name])
-      break unless all
+      unless all
+        @ftg_logger.add_log('ftg_start', 'auto') unless log[:task_name] == 'auto'
+        break
+      end
     end
+
     status
     @ftg_logger.update_current
   end
@@ -153,7 +173,17 @@ Command list:
   end
 
   def resume
-    @ftg_logger.add_log('ftg_stop', 'pause')
+    unclosed_logs = @ftg_logger.get_unclosed_logs
+    if unclosed_logs[0] && unclosed_logs[0][:task_name] == 'auto' &&
+      unclosed_logs.find { |e| !['auto', 'pause'].include?(e[:task_name]) }
+      @ftg_logger.add_log('ftg_stop', 'auto')
+    elsif unclosed_logs[0] && unclosed_logs[0][:task_name] == 'pause'
+      @ftg_logger.add_log('ftg_stop', 'pause')
+    else
+      puts 'Nothing to resume. You can only resume while on "pause" or "auto"'
+      puts
+    end
+
     status
     @ftg_logger.update_current
   end
@@ -161,6 +191,18 @@ Command list:
   def touch(task)
     @ftg_logger.add_log('ftg_start', task)
     @ftg_logger.add_log('ftg_stop', task)
+    status
+  end
+
+  def rename(from, to)
+    count = @ftg_logger.search_and_replace(from, to)
+    if count == 0
+      puts "\"#{from}\" not found in logs"
+    else
+      puts "#{count} occurrences replaced (#{from} -> #{to})"
+    end
+
+    @ftg_logger.update_current
     status
   end
 
@@ -176,7 +218,13 @@ Command list:
   def gtfo(day, restore, reset)
     edit(day, restore, reset)
     email(day)
-    puts "sync soon..."
+    sync(day)
+  end
+
+  def working_on_text(task_name)
+    return 'On pause' if task_name == 'pause'
+    return 'auto' if task_name == 'auto'
+    "Now working on: [#{task_name.cyan}]"
   end
 
   def status
@@ -185,7 +233,7 @@ Command list:
       puts 'No current task'
     else
       task_name = current_logs[0][:task_name]
-      puts(task_name == 'pause' ? 'On pause' : "Now working on: [#{task_name.cyan}]")
+      puts working_on_text(task_name)
       unless current_logs[1..-1].empty?
         puts "next tasks: #{current_logs[1..-1].map { |l| l[:task_name].light_blue }.join(', ')}"
       end
@@ -196,11 +244,27 @@ Command list:
     puts `cat #{@ftg_dir}/current.txt`
   end
 
-  def ftg_category(jt)
-    jira_category = jira_category(jt)
+  def ftg_category(jira_category)
     return 'maintenance' if jira_category == 'Maintenance'
     return 'sprint' if jira_category.present?
     nil
+  end
+
+  def assign_jt_categories(tasks)
+    jira_client, _ = require_clients
+    tasks.each do |task|
+      next if !task.jira_id || task.category
+      category_cache = CategoryCache.where(name: task.jira_id).first_or_create
+      if category_cache.category.nil?
+        print "Getting category of #{task.name}... "
+        category = ftg_category(jira_client.jira_category(task.jira_id))
+        puts category.green
+        category_cache.category = category
+        category_cache.save
+      end
+      task.category = category_cache.category
+      task.save
+    end
   end
 
   def edit(day, restore, reset)
@@ -221,9 +285,10 @@ Command list:
       tasks << task if restore || reset || !task.deleted_at
     end
 
+    assign_jt_categories(tasks)
     deleted_tasks = Interactive.new.interactive_edit(tasks, day)
     tasks.each do |task|
-      task.deleted_at = nil if restore
+      task.deleted_at = nil if restore || reset
       task.save if restore || task.changed.include?('edited_at')
     end
     deleted_tasks.each do |task|
@@ -243,7 +308,12 @@ Command list:
     FtgStats.new(false).run
   end
 
-  def list(days)
+  def config_tasks
+    @config['ftg']['default_tasks'][Time.now.strftime('%A').downcase] +
+      @config['ftg']['default_tasks']['everyday']
+  end
+
+  def get_list(days)
     days ||= 14
     begin_time = Time.now.to_i - (days.to_i * 24 * 3600)
 
@@ -286,7 +356,19 @@ Command list:
 
     all_tasks = git_branches + history_branches + ftg_tasks
     all_tasks = all_tasks.sort_by { |e| -e[0] }.group_by { |e| e[1] }.map { |task, times| task }
-    puts all_tasks.join("\n")
+    all_tasks.select { |e| !%w(pause auto master staging develop).include?(e) }
+  end
+
+  def list(days)
+    puts (get_list(days) + ['-' * 30] + config_tasks).join("\n")
+  end
+
+  def get_categories
+    @config['ftg']['projects']
+  end
+
+  def categories
+    puts get_categories.join("\n")
   end
 
   def migrate(down)

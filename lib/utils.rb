@@ -17,4 +17,9 @@ class Utils
     str.to_i.to_s == str
   end
 
+  def self.extract_jt(name)
+    match = name[/^jt-[0-9]+/]
+    match ? match.upcase : nil
+  end
+
 end

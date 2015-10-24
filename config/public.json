@@ -24,11 +24,11 @@
     "recap_mailto": ["romain.champourlier@jobteaser.com", "paul-armand.assus@jobteaser.com"],
     "projects": ["sprint", "maintenance", "project", "meeting", "recruitment", "support", "technical", "other"],
     "default_tasks": {
-      "everyday": ["meeting/standup", "meeting/one_to_one", "meeting/sprint_status"],
+      "everyday": ["meeting/standup", "meeting/one-to-one", "meeting/sprint-status"],
       "monday": ["meeting/retrospective"],
-      "tuesday": ["meeting/suivi_technique", "meeting/sprint_launch"],
+      "tuesday": ["meeting/suivi-technique", "meeting/sprint-launch"],
       "wednesday": [],
-      "thursday": ["meeting/sprint_launch"],
+      "thursday": ["meeting/sprint-launch"],
       "friday": [],
       "saturday": [],
       "sunday": []
