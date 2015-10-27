@@ -3,8 +3,11 @@ class FtgStats
 
   attr_accessor :stats
 
-  def initialize(only_last_day = false)
-    load_data(only_last_day)
+  def initialize(only_last_day = false, day = nil, extra_tasks = nil)
+    @day = day
+    @extra_tasks = extra_tasks
+
+    load_data(only_last_day, day)
     crunch
     group
     # sync_toggl
@@ -25,14 +28,16 @@ class FtgStats
     nil
   end
 
-  def load_data(only_last_day)
+  def load_data(only_last_day, day)
     home = `echo $HOME`.strip
     ftg_dir = "#{home}/.ftg"
     commands_log_path = "#{ftg_dir}/log/commands.log"
     idle_log_path = "#{ftg_dir}/log/idle.log"
+    ftg_commands_log_path = "#{ftg_dir}/log/ftg.log"
     records_to_load = only_last_day ? 24 * 360 : 0
     @commands = {}
     @idle_parts = {}
+    @ftg_commands = []
 
     # sample row:
     # pinouchon       fg      no_alias        /Users/pinouchon/.ftg   no_branch       1438867098
@@ -52,6 +57,71 @@ class FtgStats
       parts = line.split("\t")
       next if !parts[1] || parts[1].empty?
       @idle_parts[parts[1].strip.to_i] = { :time_elapsed => parts[0] }
+    end
+
+    (only_last_day ?
+      `tail -n #{records_to_load} #{ftg_commands_log_path}`.split("\n") :
+      File.foreach(ftg_commands_log_path)).each do |line|
+      parts = line.split("\t")
+      # command arg timestamp
+      next if !parts[2] || parts[2].empty?
+      @ftg_commands << { ts: parts[2].strip.to_i, command: parts[0], args: parts[1] }
+    end
+
+    if day
+      time = Time.parse(day)
+      start = time.to_i
+      ending = time.to_i + 24 * 3600
+      @commands.keep_if { |k, _| start < k && k < ending }
+      @idle_parts.keep_if { |k, _| start < k && k < ending }
+      @ftg_commands.keep_if { |e| start < e[:ts] && e[:ts] < ending }
+    end
+  end
+
+  def replay_ftg_logs
+    command_stack = []
+    previous = nil
+    @ftg_commands.each do |ftg_command|
+      if previous && command_stack[-1] && !%w(master staging develop auto).include?(command_stack[-1][:args])
+        selected_parts = @idle_parts.select do |ts|
+          previous[:ts] <= ts && ts <= ftg_command[:ts]
+        end
+        if selected_parts.count == 0
+          @idle_parts[previous[:ts]] = { time_elapsed: '0',
+                                         branch: command_stack[-1][:args],
+                                         idle: false }
+        end
+        selected_parts.each do |_, idle_part|
+          if command_stack[-1][:args] == 'pause'
+            idle_part[:idle] = true
+          else
+            idle_part[:branch] = command_stack[-1][:args]
+          end
+        end
+      end
+
+      if ftg_command[:command] == 'ftg_start'
+        command_stack << ftg_command
+      end
+
+      if ftg_command[:command] == 'ftg_stop'
+        if command_stack.empty?
+          puts 'Warning: Stack empty.'
+        elsif command_stack[-1][:args] != ftg_command[:args]
+          puts "Warning: #{ftg_command[:args]} not at the top of the stack"
+        else
+          command_stack.pop
+        end
+      end
+
+      previous = ftg_command
+    end
+
+    time = Time.parse(@day) + 19 * 3600
+    @extra_tasks.each_with_index do |task, i|
+      @idle_parts[time.to_i + i] = { time_elapsed: '0',
+                                     branch: task,
+                                     idle: false }
     end
   end
 
@@ -74,6 +144,8 @@ class FtgStats
       @idle_parts[timestamp][:branch] = last_branch
       @idle_parts[timestamp][:idle] = part[:time_elapsed].to_i > IDLE_THRESHOLD
     end
+
+    replay_ftg_logs if @day
   end
 
   def group
@@ -102,41 +174,39 @@ class FtgStats
   end
 
   # Full sync
-  def sync_toggl
-    raise 'deprecated'
-    require_relative 'ftg_sync'
-    require 'pry'
-    sync = FtgSync.new
-    i = 0
-
-    Hash[@stats].each do |day, by_day|
-      puts "#{day}:"
-      Hash[by_day].each do |branch, by_branch|
-        by_idle = Hash[by_branch]
-        idle_str = by_idle[true] ? "(and #{by_idle[true]} idle)" : ''
-        puts "  #{branch}: #{by_idle[false] || '00:00:00'} #{idle_str}"
-
-        if branch =~ /jt-/ && by_idle[false]
-          ps = day.split('-')
-          time = Time.new(ps[0], ps[1], ps[2], 12,0,0)
-          begining_of_day = Time.new(ps[0], ps[1], ps[2], 0,0,0)
-          end_of_day = begining_of_day + (24*3600)
-
-          jt = branch[/(jt-[0-9]+)/]
-          # duration_parts = by_idle[false].split(':')
-          duration = by_idle[false].to_i
-          # duration = duration_parts[0].to_i * 3600 + duration_parts[1].to_i * 60 + duration_parts[2].to_i
-          type = sync.maintenance?(jt) ? :maintenance : :sprint
-          sync.create_activity("#{branch} [via FTG]", duration, time, type)
-          i += 1
-
-          puts "logging #{branch}: #{by_idle[false]}"
-        end
-      end
-    end
-    puts "total: #{i}"
-  end
+  # def sync_toggl
+  #   raise 'deprecated'
+  #   require_relative 'ftg_sync'
+  #   require 'pry'
+  #   sync = FtgSync.new
+  #   i = 0
+  #
+  #   Hash[@stats].each do |day, by_day|
+  #     puts "#{day}:"
+  #     Hash[by_day].each do |branch, by_branch|
+  #       by_idle = Hash[by_branch]
+  #       idle_str = by_idle[true] ? "(and #{by_idle[true]} idle)" : ''
+  #       puts "  #{branch}: #{by_idle[false] || '00:00:00'} #{idle_str}"
+  #
+  #       if branch =~ /jt-/ && by_idle[false]
+  #         ps = day.split('-')
+  #         time = Time.new(ps[0], ps[1], ps[2], 12, 0, 0)
+  #         begining_of_day = Time.new(ps[0], ps[1], ps[2], 0, 0, 0)
+  #         end_of_day = begining_of_day + (24*3600)
+  #
+  #         jt = branch[/(jt-[0-9]+)/]
+  #         # duration_parts = by_idle[false].split(':')
+  #         duration = by_idle[false].to_i
+  #         # duration = duration_parts[0].to_i * 3600 + duration_parts[1].to_i * 60 + duration_parts[2].to_i
+  #         type = sync.maintenance?(jt) ? :maintenance : :sprint
+  #         sync.create_activity("#{branch} [via FTG]", duration, time, type)
+  #         i += 1
+  #
+  #         puts "logging #{branch}: #{by_idle[false]}"
+  #       end
+  #     end
+  #   end
+  #   puts "total: #{i}"
+  # end
 
 end
-
-# FtgStats.new

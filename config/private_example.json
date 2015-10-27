@@ -1,0 +1,27 @@
+{
+  "ftg": {
+    "plugins": {
+      "toggl": {
+        "enabled": true,
+        "api_token": "FTG_API_TOKEN_HERE"
+      },
+      "jira": {
+        "enabled": true,
+        "username": "jira_user",
+        "password": "jira_password"
+      }
+    },
+    "recap_mailto": ["romain.champourlier@jobteaser.com"],
+    "projects": ["sprint", "maintenance", "project", "meeting", "recruitment", "support", "technical", "other"],
+    "default_tasks": {
+      "everyday": ["meeting/standup", "meeting/one-to-one", "meeting/sprint-status"],
+      "monday": ["meeting/retrospective"],
+      "tuesday": ["meeting/suivi-technique", "meeting/sprint-launch"],
+      "wednesday": [],
+      "thursday": ["meeting/sprint-launch"],
+      "friday": [],
+      "saturday": [],
+      "sunday": []
+    }
+  }
+}

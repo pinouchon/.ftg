@@ -11,9 +11,9 @@ class Ftg
   def initialize
     @commands = {
       help: { fn: -> { help }, aliases: [] },
-      gtfo: { fn: -> {
+      recap: { fn: -> {
         gtfo(day_option, get_option(['--restore']), get_option(['--reset'])) # option union
-      }, aliases: [:recap, :leave, :wrap_up] },
+      }, aliases: [:gtfo, :leave, :wrap_up] },
       status: { fn: -> { status }, aliases: [:stack] },
       console: { fn: -> { console }, aliases: [:shell] },
       current: { fn: -> { current }, aliases: [] },
@@ -91,14 +91,16 @@ By default, the day param is the current day.
 
 Command list:
   start, stop, pause, resume <task>  Manage tasks
-  gtfo                               Executes: edit, sync, mail
+  recap                              Executes: edit, sync, mail
   edit <task> [-d <day>, --reset]    Manually edit times
   sync [-d <day>]                    Sync times with jira and toggl
   mail                               Send an email
-  stats [-d <day>]                   Show time stats
-  current                            Show current task
+  git_stats                          Show git branch times
+  status                             Show current task and status
+  auto                               Auto mode (by default). Track based on git branch
   touch <task>                       Start and end a task right away
   remove <task>                      Delete a task
+  rename <from> <to>                 Rename a task
   list                               List of tasks/meetings of the day
   config                             Show config files
   console                            Open a console
@@ -138,8 +140,14 @@ Command list:
       status
       fail("\nTask #{task} already started")
     end
-    if !Utils.extract_jt(task) && !task[/\//]
+    if !Utils.extract_jt(task) && !task[/\//] && task != 'auto' && task != 'pause'
       STDERR.puts "Enter #{'category'.yellow}/task. Example: " + 'ftg start meeting/sprint'.yellow
+      STDERR.puts 'Available categories:'
+      STDERR.puts get_categories.map { |e| "  #{e}" }.join("\n")
+      fail
+    end
+    if !Utils.extract_jt(task) && task[/\//] && !get_categories.include?(c = task.split('/')[0])
+      STDERR.puts "Invalid category #{(c||'').yellow}"
       STDERR.puts 'Available categories:'
       STDERR.puts get_categories.map { |e| "  #{e}" }.join("\n")
       fail
@@ -195,6 +203,10 @@ Command list:
   end
 
   def rename(from, to)
+    if %w(ftg_start ftg_end).include?(from) || %w(ftg_start ftg_end).include?(to) ||
+      from.numeric? || to.numeric?
+      fail('Param must be a task name')
+    end
     count = @ftg_logger.search_and_replace(from, to)
     if count == 0
       puts "\"#{from}\" not found in logs"
@@ -268,18 +280,20 @@ Command list:
   end
 
   def edit(day, restore, reset)
+    print 'Initializing the awesome...'
+
     require_relative '../interactive'
     require_relative './ftg_stats'
     require_models
 
-    ftg_stats = FtgStats.new(day == Time.now.strftime('%F'))
+    ftg_stats = FtgStats.new(day == Time.now.strftime('%F'), day, config_tasks)
     tasks = []
     Hash[ftg_stats.stats][day].each do |branch, by_branch|
       next if branch == 'unknown'
       by_idle = Hash[by_branch]
-      scope = Task.where(day: day).where(name: branch)
-      # scope.delete_all if reset
-      task = scope.first_or_create
+      task_name = branch[/\//] ? branch.split('/')[1] : branch
+      task = Task.where(day: day).where(name: task_name).first_or_create
+      task.category = branch.split('/')[0] if branch[/\//]
       task.duration = (task.edited_at && !reset) ? task.duration : by_idle[false].to_i
       task.save
       tasks << task if restore || reset || !task.deleted_at
@@ -318,7 +332,7 @@ Command list:
     begin_time = Time.now.to_i - (days.to_i * 24 * 3600)
 
     # Date.parse(day).to_time.to_i
-    git_branches_raw = `git for-each-ref --sort=-committerdate --format='%(refname:short) | %(committerdate:iso)' refs/heads/` rescue nil
+    git_branches_raw = `git for-each-ref --sort=-committerdate --format='%(refname:short) | %(committerdate:iso)' refs/heads/` rescue []
 
     git_branches = []
     git_branches_raw.split("\n").map do |b|
@@ -386,7 +400,7 @@ Command list:
     max_len = TaskFormatter.max_length(tasks)
     content = "Salut,\n\n<Expliquer ici pourquoi le sprint ne sera pas fini à temps>\n\n#{day}\n"
     content += tasks.map do |task|
-      TaskFormatter.new.format(task, max_len).line_for_email
+      TaskFormatter.new(20).format(task, max_len).line_for_email
     end.join("\n")
     content
   end

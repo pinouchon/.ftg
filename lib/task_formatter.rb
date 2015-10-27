@@ -19,7 +19,8 @@ class TaskFormatter
   end
 
   def time_bar(full_char = '=', empty_char = ' ', ellipsis = '...')
-    time_len = [@task.duration / 300, bar_size].min
+    time_len = [@task.duration / 300, 40].min
+    time_len = (time_len * bar_size / 40)
     if time_len >= bar_size
       "[#{(full_char * (time_len - 2)) + ellipsis}"
     else
@@ -42,7 +43,7 @@ class TaskFormatter
     task_formatted = @task.name_with_category[0, @task_len]
     jt = @task.jira_id
     jira_link = jt ? "https://jobteaser.atlassian.net/browse/#{jt}" : ''
-    "  #{time_bar('#', '  ', '..')} #{@task.duration_formatted}  #{task_formatted} #{jira_link}"
+    "  #{time_bar('#', '  ', '...  ')} #{@task.duration_formatted}  #{task_formatted} #{jira_link}"
   end
 
 end

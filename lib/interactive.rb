@@ -74,8 +74,15 @@ class Interactive
     print "\033[#{@tasks.length + 3}A"
   end
 
+  def clear
+    print ("\033[K\n" * (@tasks.count + 3))
+    print "\033[#{@tasks.count + 3}A"
+  end
 
   def interactive_edit(tasks, day)
+    puts
+    puts "\033[K" + "\033[2A"
+
     @tasks = tasks
     @deleted_tasks = []
     @header = "#{day}  [↑|↓] navigate, [⇽|⇾] adjust time, [⇐ ] remove, [↵ |q] save, [esc] cancel".grey
@@ -86,8 +93,14 @@ class Interactive
       print_tasks
       input = read_char
 
-      exit if [KEY_CTRL_C, KEY_ESCAPE].include? input
-      return @deleted_tasks if [KEY_ENTER, 'q'].include? input
+      if [KEY_CTRL_C, KEY_ESCAPE].include? input
+        clear
+        exit
+      end
+      if [KEY_ENTER, 'q'].include? input
+        clear
+        return @deleted_tasks
+      end
 
       top_down = { KEY_DOWN => +1, KEY_TOP => -1 }
       if top_down.keys.include? input

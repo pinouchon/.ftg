@@ -8,7 +8,7 @@ class Task < ActiveRecord::Base
   end
 
   def name_with_category
-    "#{category}/#{name}"
+    [category, name].compact.join('/')
   end
 
   def self.not_deleted
