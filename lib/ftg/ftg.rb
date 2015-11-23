@@ -433,6 +433,25 @@ Command list:
     puts '=========================================='
     pause
   end
+
+  # hacky
+  def remove_duplicate_worklogs
+    jira_client = require_clients[0]
+    tasks = Task.where('jira_logged_duration > 0')
+    tasks.each do |task|
+      print "Deduplicating task #{task.name}... "
+      payload = jira_client.get_jt_info(task.jira_id)
+      existing_worklogs = payload['fields']['worklog']['worklogs'].map{|e|e['timeSpentSeconds']}
+      if existing_worklogs.include?(task.jira_logged_duration)
+        print "Duplicate, removing worklog"
+        jira_client.delete_worklog(task)
+      else
+        print "Unique entry. Keeping worklog"
+      end
+      puts
+    end
+
+  end
 end
 
 Ftg.new.run
