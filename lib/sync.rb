@@ -24,20 +24,20 @@ class Sync
     scope = Task.where(day: day)
 
     # tasks that need deletion
-    # scope.deleted.where('toggl_activity_id IS NOT NULL').each do |task|
-    #   delete_from_toggl(task)
-    # end
-    scope.deleted.where('jira_timelog_id IS NOT NULL').each do |task|
-      delete_from_jira(task)
+    scope.deleted.where('toggl_activity_id IS NOT NULL').each do |task|
+      delete_from_toggl(task)
     end
+    # scope.deleted.where('jira_timelog_id IS NOT NULL').each do |task|
+    #   delete_from_jira(task)
+    # end
 
     # tasks that need synchronisation
-    # scope.not_deleted.where('duration IS NOT toggl_logged_duration').each do |task|
-    #   sync_toggl(task)
-    # end
-    scope.not_deleted.where('duration IS NOT jira_logged_duration').each do |task|
-      sync_jira(task)
+    scope.not_deleted.where('duration IS NOT toggl_logged_duration').each do |task|
+      sync_toggl(task)
     end
+    # scope.not_deleted.where('duration IS NOT jira_logged_duration').each do |task|
+    #   sync_jira(task)
+    # end
   end
 
   def delete_from_toggl(task)
