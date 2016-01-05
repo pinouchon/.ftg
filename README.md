@@ -59,3 +59,4 @@ alias ftg="ruby ~/.ftg/ftg_stats.rb"
 - Restart your shell
 - ???
 - profit
+
