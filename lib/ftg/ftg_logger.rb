@@ -5,8 +5,8 @@ class FtgLogger
     @log_file = "#{ftg_dir}/log/ftg.log"
   end
 
-  def add_log(command, task)
-    lines = [command, task, Time.now.getutc.to_i]
+  def add_log(command, task, time = Time.now.getutc.to_i)
+    lines = [command, task, time]
     `echo "#{lines.join('\t')}" >> #{@log_file}`
   end
 

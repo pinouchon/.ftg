@@ -29,7 +29,7 @@ class Ftg
       list: { fn: -> { list(get_option(['--day', '-d'])) }, aliases: [:ls, :history, :recent] },
       sync: { fn: -> { sync(day_option) }, aliases: [] },
       config: { fn: -> { config }, aliases: [] },
-      touch: { fn: -> { touch(ARGV[1]) }, aliases: [] },
+      touch: { fn: -> { touch(ARGV[1], day_option) }, aliases: [] },
       rename: { fn: -> { rename(ARGV[1], ARGV[2]) }, aliases: [] },
       delete: { fn: -> { delete(ARGV[1]) }, aliases: [:remove] },
       email: { fn: -> { email(day_option) }, aliases: [:mail] },
@@ -196,9 +196,12 @@ Command list:
     @ftg_logger.update_current
   end
 
-  def touch(task)
-    @ftg_logger.add_log('ftg_start', task)
-    @ftg_logger.add_log('ftg_stop', task)
+  def touch(task, day)
+    require 'pry'
+    binding.pry
+    time = DateTime.parse(day).to_time.to_i + (12 * 3600)
+    @ftg_logger.add_log('ftg_start', task, time)
+    @ftg_logger.add_log('ftg_stop', task, time)
     status
   end
 

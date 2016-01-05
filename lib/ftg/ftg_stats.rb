@@ -4,6 +4,7 @@ class FtgStats
   attr_accessor :stats
 
   def initialize(only_last_day = false, day = nil, extra_tasks = nil)
+    @offset = 0
     @day = day
     @extra_tasks = extra_tasks
 
@@ -87,9 +88,10 @@ class FtgStats
           previous[:ts] <= ts && ts <= ftg_command[:ts]
         end
         if selected_parts.count == 0
-          @idle_parts[previous[:ts]] = { time_elapsed: '0',
+          @idle_parts[previous[:ts] + @offset] = { time_elapsed: '0',
                                          branch: command_stack[-1][:args],
                                          idle: false }
+          @offset += 1
         end
         selected_parts.each do |_, idle_part|
           if command_stack[-1][:args] == 'pause'
