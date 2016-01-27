@@ -6,10 +6,10 @@
         "api_token": null,
         "workspace_id": 939576,
         "project_ids": {
-          "autres": 9800260,
+          "other": 9800260,
           "maintenance": 9800223,
-          "projects": 10669186,
-          "reu": 9800248,
+          "project": 10669186,
+          "meeting": 9800248,
           "sprint": 9800218,
           "support": 9800226,
           "technical": 9800254
