@@ -197,8 +197,6 @@ Command list:
   end
 
   def touch(task, day)
-    require 'pry'
-    binding.pry
     time = DateTime.parse(day).to_time.to_i + (12 * 3600)
     @ftg_logger.add_log('ftg_start', task, time)
     @ftg_logger.add_log('ftg_stop', task, time)
