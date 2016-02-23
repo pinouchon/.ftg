@@ -33,25 +33,32 @@ $> ftg
 - Add the following at the end of your .zshrc:
 ````shell
 ####################################################### FTG
- precmd () {
+  ftg_heartbeat () {
     command="$(fc -n -e - -l -1)"
     c_alias="`alias $command`"
     c_alias=${c_alias:-no_alias}
-    log_file="$HOME/.ftg/commands.log"
-    branch="$(current_branch)"
+    log_file="$HOME/.ftg/log/commands.log"
+    branch="`git rev-parse --abbrev-ref HEAD`"
     branch=${branch:-no_branch}
+
     echo "$USER\t$command\t$c_alias\t`pwd`\t$branch\t`date +%s`" >> "$log_file"
 
-    case "$(ps | grep '[i]dle_logger' | wc -l | awk {'print $1'})" in
-      '0')  ruby $HOME/.ftg/idle_logger.rb &
+    case "$(ps aux | grep '[i]dle_logger' | wc -l | awk {'print $1'})" in
+      '0')  ruby $HOME/.ftg/lib/idle_logger.rb &
     ;;
       '1')  # all good
     ;;
       *)  echo "Problem with restarting idle_logger. See ~/.zshrc"
     ;;
-esac
-}
-alias ftg="ruby ~/.ftg/ftg_stats.rb"
+    esac
+  }
+
+  precmd () {
+    (ftg_heartbeat &) 2> /dev/null
+#> /dev/null
+  }
+
+alias ftg="ruby ~/.ftg/lib/ftg/ftg.rb"
 ####################################################### END FTG
 ````
 - `cd ~`
