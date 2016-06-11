@@ -10,7 +10,7 @@ The main usage is the following one:
 
 Many more commands are available. Run `ftg help` to view them.
 
-(click to view video)
+(click image below to play video)
 
 [![ftg demo](http://img.youtube.com/vi/hbOyWkfL9tA/0.jpg)](https://www.youtube.com/watch?v=hbOyWkfL9tA)
 
