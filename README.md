@@ -1,28 +1,15 @@
 # .ftg
 
-## ferme toggl
-Utility that you can use so you can close toggl.
+Utility to do time tracking based on time spent in git branches.
 
-## Example usage
-````shell
-$> ftg
-2015-08-05:
-  no_branch: 00:02:40 (and 00:00:00 idle)
-  feature/jira-1323-ssl-redirect: 03:12:20 (and 00:50:40 idle)
-  feature/jira-1056-checkout-spinner: 00:56:10 (and 00:02:40 idle)
-  feature/jira-1126-remove-unused-css: 00:09:30 (and 00:00:00 idle)
-  develop: 00:13:30 (and 00:00:00 idle)
-  meetings/standup: 00:05:00 (and 00:07:50 idle)
-2015-08-06:
-  feature/jira-1402-responsive-header: 01:12:20 (and 00:13:20 idle)
-  feature/jira-1402-assets-upload-task: 02:32:20 (and 00:20:20 idle)
-  feature/jira-1056-remove-newrelic-warnings: 00:43:10 (and 00:00:00 idle)
-  master: 00:01:30 (and 00:00:00 idle)
-  develop: 00:03:20 (and 00:00:00 idle)
-  meetings: 00:40:00 (and 00:12:50 idle)
-  meetings/standup: 00:05:00 (and 00:12:50 idle)
-````
+The main usage is the following one:
 
+ - At the end of the day, send a daily recap
+ - Time spend in branches is already set
+ - Move around with arrows, delete task with backspace, validate with enter
+
+(click to view video)
+[![ftg demo](http://img.youtube.com/vi/hbOyWkfL9tA/0.jpg)](https://www.youtube.com/watch?v=hbOyWkfL9tA)
 
 ## Requirements
 - MacOSX
