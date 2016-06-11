@@ -8,6 +8,8 @@ The main usage is the following one:
  - Time spend in branches is already set
  - Move around with arrows, delete task with backspace, validate with enter
 
+Many more commands are available. Run `ftg help` to view them.
+
 (click to view video)
 
 [![ftg demo](http://img.youtube.com/vi/hbOyWkfL9tA/0.jpg)](https://www.youtube.com/watch?v=hbOyWkfL9tA)
