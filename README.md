@@ -9,6 +9,7 @@ The main usage is the following one:
  - Move around with arrows, delete task with backspace, validate with enter
 
 (click to view video)
+
 [![ftg demo](http://img.youtube.com/vi/hbOyWkfL9tA/0.jpg)](https://www.youtube.com/watch?v=hbOyWkfL9tA)
 
 ## Requirements
