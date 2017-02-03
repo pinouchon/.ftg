@@ -43,9 +43,9 @@ class FtgStats
     # sample row:
     # pinouchon       fg      no_alias        /Users/pinouchon/.ftg   no_branch       1438867098
     (only_last_day ?
-      `tail -n #{records_to_load} #{commands_log_path}`.split("\n") :
+      `tail -n #{records_to_load} #{commands_log_path}`.encode!('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '').split("\n") :
       File.foreach(commands_log_path)).each do |line|
-      parts = line.split("\t")
+      parts = line.encode('UTF-8', :invalid => :replace).split("\t")
       next if !parts[5] || parts[5].empty?
       @commands[parts[5].strip.to_i] = { :user => parts[0],
                                          :command => parts[1],

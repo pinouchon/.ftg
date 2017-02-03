@@ -271,6 +271,7 @@ Command list:
       if category_cache.category.nil?
         print "Getting category of #{task.name}... "
         category = ftg_category(jira_client.jira_category(task.jira_id))
+        next unless category
         puts category.green
         category_cache.category = category
         category_cache.save
