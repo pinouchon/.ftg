@@ -79,7 +79,7 @@ class Sync
     print "Creating toggl activity for #{task.name.cyan}... "
     result = @toggl_client.create_activity("#{task.name} [FTG]", task.duration, task.day, task.category)
 
-    if result['data']['id']
+    if result['data'] && result['data']['id']
       puts "ok".green
       task.toggl_logged_duration = result['data']['duration']
       task.toggl_activity_id = result['data']['id']

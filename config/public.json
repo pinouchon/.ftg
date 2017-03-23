@@ -12,7 +12,8 @@
           "meeting": 9800248,
           "sprint": 9800218,
           "support": 9800226,
-          "technical": 9800254
+          "technical": 9800254,
+          "tribe_data": 32940670
         }
       },
       "jira": {
@@ -21,21 +22,21 @@
         "password": null
       }
     },
-    "recap_mailto": ["romain.champourlier@jobteaser.com", "paul-armand.assus@jobteaser.com"],
+    "recap_mailto": ["romain.champourlier@jobteaser.com", "paul-armand.assus@jobteaser.com", "eurydice.lafferayrie@jobteaser.com", "stephanie.baltus@jobteaser.com"],
     "projects": ["sprint", "maintenance", "project", "meeting", "recruitment", "support", "technical", "other"],
     "default_tasks": {
-      "everyday": ["meeting/standup", "meeting/one-to-one", "meeting/sprint-status"],
-      "monday": ["meeting/retrospective"],
-      "tuesday": ["meeting/suivi-technique", "meeting/sprint-launch"],
+      "everyday": [],
+      "monday": ["meeting/retrospective", "meeting/point-com-tech", "meeting/point-suivi-data"],
+      "tuesday": ["meeting/suivi-technique"],
       "wednesday": [],
-      "thursday": ["meeting/sprint-launch"],
-      "friday": [],
+      "thursday": [],
+      "friday": ["meeting/one-to-one"],
       "saturday": [],
       "sunday": []
     },
     "greetings": {
       "monday": "A demain",
-      "tuesday": "A demain",
+      "tuesday": "A jeudi",
       "wednesday": "A demain",
       "thursday": "A demain",
       "friday": "Bon week end",

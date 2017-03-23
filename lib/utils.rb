@@ -33,7 +33,7 @@ class Utils
   end
 
   def self.extract_jt(name)
-    match = name[/^jt-[0-9]+/]
+    match = name[/^(jt|data)-[0-9]+/i]
     match ? match.upcase : nil
   end
 

@@ -258,9 +258,11 @@ Command list:
   end
 
   def ftg_category(jira_category)
-    return 'maintenance' if jira_category == 'Maintenance'
-    return 'sprint' if jira_category.present?
-    nil
+    return 'tribe_data'
+
+    # return 'maintenance' if jira_category == 'Maintenance'
+    # return 'sprint' if jira_category.present?
+    # nil
   end
 
   def assign_jt_categories(tasks)
